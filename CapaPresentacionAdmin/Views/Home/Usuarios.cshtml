@@ -11,7 +11,7 @@
 
 <div class="card">
     <div class="card-header">
-        <i class="fas fa-user me-1"></i> Lista de Usuarios
+        <i class="fas fa-users me-1"></i> Lista de Usuarios
     </div>
     <div class="card-body">
         <div class="row">
@@ -48,7 +48,7 @@
             </div>
             <div class="modal-body">
 
-                <input id="txtid" type="text" value="0" />
+                <input id="txtid" type="hidden" value="0" />
 
                 <div class="row g-2">
 
@@ -137,7 +137,7 @@
         function abrirModal(json) {
 
             $("#txtid").val(0);
-            $("#txtnomUrir★ Action Action Actiones").val("");
+            $("#txtnombres").val("");
             $("#txtapellidos").val("");
             $("#txtcorreo").val("");
             $("#cboactivo").val(1);
@@ -194,7 +194,7 @@
                             }
                         },
                         error: function (error) {
-                            cosole.log(error);
+                            console.log(error);
                         }
                     })
                 });

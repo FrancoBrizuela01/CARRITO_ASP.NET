@@ -67,5 +67,23 @@ namespace CapaNegocio
 
             return resultado;
         }
+
+        public static string ConvertirBase64(string ruta, out bool conversion)
+        {
+            string textoBase64 = string.Empty;
+            conversion = true;
+
+            try
+            {
+                byte[] bytes = File.ReadAllBytes(ruta); //convierto en array de bytes la ruta
+                textoBase64 = Convert.ToBase64String(bytes);
+            }
+            catch
+            {
+                conversion = false;
+            }
+
+            return textoBase64;
+        }
     }
 }
