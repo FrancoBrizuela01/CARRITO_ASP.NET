@@ -54,7 +54,6 @@ namespace CapaPresentacionAdmin.Controllers
                 ViewBag.Error = null;
                 return RedirectToAction("Index", "Home");
             }
-
         }
 
         [HttpPost]
@@ -78,6 +77,7 @@ namespace CapaPresentacionAdmin.Controllers
                 ViewBag.Error = "Las contraseñas no coinciden";
                 return View();
             }
+
             ViewData["vclave"] = "";
 
             nuevaclave = CN_Recursos.ConvertirSha256(nuevaclave);
