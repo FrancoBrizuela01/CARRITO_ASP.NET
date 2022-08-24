@@ -366,6 +366,74 @@
             })
         })
 
+
+        function RealizarPago() {
+   
+            if (parseInt($("#cantidadcarrito").text()) == 0) {
+                swal("", "No existen productos en el carrito", "warning");
+                return
+            }
+
+            if ($("#cbodistrito").val() == null || $("#txtnombrecontacto").val() == "" || $("#txtdireccion").val() == "" || $("#txttelefono").val() == "") {
+                swal("", "Debe completar los datos de detalle envio", "warning");
+                return
+            }
+
+            var venta = {
+                TotalProducto: $("input.input-cantidad").length,
+                MontoTotal: 0,
+                Contacto: $("#txtnombrecontacto").val(),
+                IdDistrito: $("#cbodistrito").val(),
+                Telefono: $("#txttelefono").val(),
+                Direccion: $("#txtdireccion").val()
+            }
+
+            var lista_carrito = [];
+
+            $("input.input-cantidad").each(function (i) {
+                var producto = $(this).data("oProducto");
+                var cantidad = parseFloat($(this).val());
+
+                lista_carrito.push({
+                    oProducto: producto,
+                    Cantidad: cantidad
+                })
+            })
+
+            jQuery.ajax({
+                url: '@Url.Action("ProcesarPago", "Tienda")',
+                type: "POST",
+                data: JSON.stringify({ oListaCarrito: lista_carrito, oVenta: venta }),
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                success: function (data) {
+
+                    $.LoadingOverlay("hide");
+
+                    if (data.Status) {
+                        //window.location.href = data.Link;
+                        //paypal
+                        var jsonresult = data.Response;
+                        var links = jsonresult.links;
+                        var resultado = links.find(item => item.rel === "approve");
+
+                        window.location.href = resultado.href
+                        //-
+
+                    } else {
+                        swal("", "Vuelva a intentarlo más tarde", "warning");
+                    }
+                },
+                beforeSend: function () {
+                    $.LoadingOverlay("show");
+                },
+                error: function (error) {
+                    $.LoadingOverlay("hide");
+                    console.log(error);
+                }
+           })
+        }
+
     </script>        
 } 
 

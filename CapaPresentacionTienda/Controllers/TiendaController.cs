@@ -7,6 +7,13 @@ using System.Web.Mvc;
 using CapaEntidad;
 using CapaNegocio;
 using System.IO;
+using System.Threading.Tasks;
+using System.Data;
+using System.Globalization;
+using System.Web.Script.Serialization;
+
+using CapaEntidad.Paypal;
+using System.EnterpriseServices;
 
 namespace CapaPresentacionTienda.Controllers
 {
@@ -210,5 +217,145 @@ namespace CapaPresentacionTienda.Controllers
         {
             return View();
         }
+
+
+        [HttpPost]
+        public async Task<JsonResult> ProcesarPago(List<Carrito> oListaCarrito, Venta oVenta) 
+        {
+            decimal total = 0;
+
+            DataTable detalle_venta = new DataTable();
+            detalle_venta.Locale = new CultureInfo("es-AR");
+            detalle_venta.Columns.Add("IdProducto", typeof(string));
+            detalle_venta.Columns.Add("Cantidad", typeof(int));
+            detalle_venta.Columns.Add("Total", typeof(decimal));
+
+            //paypal
+            List<Item> oListaItem = new List<Item>();
+            //-
+
+            foreach (Carrito oCarrito in oListaCarrito)
+            {
+                decimal subtotal = Convert.ToDecimal(oCarrito.Cantidad.ToString()) * oCarrito.oProducto.Precio;
+                total += subtotal;
+
+                //paypal
+                oListaItem.Add(new Item()
+                {
+                    name = oCarrito.oProducto.Nombre,
+                    quantity = oCarrito.Cantidad.ToString(),
+                    unit_amount = new UnitAmount()
+                    {
+                        currency_code = "USD",
+                        value = oCarrito.oProducto.Precio.ToString("G", new CultureInfo("es-AR"))
+                    }
+                });
+                //-
+
+                detalle_venta.Rows.Add(new object[] {
+                    oCarrito.oProducto.IdProducto,
+                    oCarrito.Cantidad,
+                    subtotal
+                });
+            }
+
+            //paypal
+            PurchaseUnit purchaseUnit = new PurchaseUnit()
+            {
+                amount = new Amount()
+                {
+                    currency_code = "USD",
+                    value = total.ToString("G", new CultureInfo("es-AR")),
+                    breakdown = new Breakdown()
+                    {
+                        item_total = new ItemTotal()
+                        {
+                            currency_code = "USD",
+                            value = total.ToString("G", new CultureInfo("es-AR")),
+                        }
+                    }
+                },
+                description = "compra de articulo de mi tienda",
+                items = oListaItem
+            };
+
+            Checkout_Order oCheckOutOrder = new Checkout_Order()
+            {
+                intent = "CAPTURE",
+                purchase_units = new List<PurchaseUnit>() { purchaseUnit },
+                application_context = new ApplicationContext()
+                {
+                    brand_name = "TuTienda.com",
+                    landing_page = "NO_PREFERENCE",
+                    user_action = "PAY_NOW",
+                    return_url = "https://localhost:44325/Tienda/PagoEfectuado",
+                    cancel_url = "https://localhost:44325/Tienda/Carrito"
+                }
+            };
+            //-
+
+            oVenta.MontoTotal = total;
+            oVenta.IdCliente = ((Cliente)Session["Cliente"]).IdCliente;
+
+            TempData["Venta"] = oVenta;
+            TempData["DetalleVenta"] = detalle_venta;
+
+            //paypal
+            CN_Paypal opaypal = new CN_Paypal();
+
+            Response_Paypal<Response_Checkout> response_paypal = new Response_Paypal<Response_Checkout>();
+
+            response_paypal = await opaypal.CrearSolicitud(oCheckOutOrder);           
+            //-
+
+            return Json(response_paypal, JsonRequestBehavior.AllowGet);
+
+            //var jsonresult = Json(new { /*Status = true,*/ Link = "/Tienda/PagoEfectuado?idTransaccion=code0001&status=true" }, JsonRequestBehavior.AllowGet);
+            //jsonresult.MaxJsonLength = int.MaxValue;
+
+            //return jsonresult;
+        }
+
+
+        public async Task<ActionResult> PagoEfectuado()
+        {
+            /*
+            string idtransaccion = Request.QueryString["idTransaccion"];
+            bool status = Convert.ToBoolean(Request.QueryString["status"]);
+            */
+
+            //paypal
+            string token = Request.QueryString["token"];
+
+            CN_Paypal opaypal = new CN_Paypal();
+            Response_Paypal<Response_Capture> response_paypal = new Response_Paypal<Response_Capture>();
+            response_paypal = await opaypal.AprobarPago(token);
+
+            ViewData["Status"] = response_paypal.Status;
+
+            /*
+            ViewData["Status"] = status;
+            */
+
+            /*if (status)*/
+            if (response_paypal.Status)
+            {
+            //-
+                Venta oVenta = (Venta)TempData["Venta"];
+                DataTable detalle_venta = (DataTable)TempData["DetalleVenta"];
+                /*oVenta.IdTransaccion = idtransaccion;*/
+                //paypal
+                oVenta.IdTransaccion = response_paypal.Response.purchase_units[0].payments.captures[0].id;
+                //-
+                string mensaje = string.Empty;
+
+                bool respuesta = new CN_Venta().Registrar(oVenta, detalle_venta, out mensaje);
+
+                ViewData["IdTransaccion"] = oVenta.IdTransaccion;
+            }
+            return View();
+        }
+
+
     }
 }

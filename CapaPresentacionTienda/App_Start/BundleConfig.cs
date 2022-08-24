@@ -21,6 +21,8 @@ namespace CapaPresentacionTienda
 
             bundles.Add(new Bundle("~/bundles/bootstrap").Include(
                       "~/Scripts/bootstrap.bundle.js",
+                      "~/Scripts/bootstrap.min.js",
+                      "~/Scripts/jquery-3.4.1.min.js",
                       "~/Scripts/fontawesome/all.min.js",                     
                       "~/Scripts/loadingoverlay.min.js",                     
                       "~/Scripts/sweetalert.min.js"                    
@@ -28,6 +30,7 @@ namespace CapaPresentacionTienda
 
             bundles.Add(new StyleBundle("~/Content/css").Include(
                 "~/Content/site.css",
+                "~/Content/bootstrap.min.css",
                 "~/Content/sweetalert.css"
                 ));
         }
